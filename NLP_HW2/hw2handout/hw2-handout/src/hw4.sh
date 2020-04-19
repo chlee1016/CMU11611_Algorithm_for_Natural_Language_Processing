@@ -1,11 +1,11 @@
 #!/bin/bash
 # Sample script file to run your code. Feel free to change it.
-# Run this script using ./hw4.sh train_file test_file
-# Example:  ./hw4.sh ./naivebayes.py ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
+# Run this script using ./hw4.sh train_text train_label test_text test_label
+# Example:  ./hw4.sh ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
+# $ sh hw4.sh ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
 
-echo "Running using train file at" $1 "and the label at" $2 "and test file at" $3 "and save pred at" $4
-# python naivebayes.py ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
-# python3 naivebayes.py ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
+echo "Running using train file at" $1 $'\n' "and the label at" $2 $'\n' \
+"and test file at" $3 $'\n' "and save pred at" $4 $'\n'
 python naivebayes.py $1 $2 $3 $4
 
 
