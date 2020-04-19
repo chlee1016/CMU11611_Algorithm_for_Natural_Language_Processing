@@ -1,14 +1,10 @@
 # $ python3 naivebayes.py dev_text.txt dev_label.txt heldout_text.txt heldout_pred_nb.txt
-
-from nltk.corpus import stopwords
-import re
-from tensorflow.python.keras.preprocessing.sequence import pad_sequences
-from tensorflow.python.keras.preprocessing.text import Tokenizer
-import pandas as pd
-
-
 import numpy as np
+import sys
+import re
+from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import CountVectorizer
+
 
 def load_data(data_text, data_label=None):
     f_train = open(data_text, encoding='UTF8')
@@ -27,6 +23,13 @@ def load_data(data_text, data_label=None):
 
     return X_train, y_train
 
+def train_val_split(data, label, portion):
+    # I = np.arange(round(len(data) * portion))
+    X_train = data[:round(len(data) * portion)]
+    y_train = label[:round(len(data) * portion)]
+    X_val = data[round(len(data) * portion):]
+    y_val = label[round(len(data) * portion):]
+    return X_train, y_train, X_val, y_val
 
 def label2int(y_train):
     # replace neg to 0 and pos to 1
@@ -47,24 +50,18 @@ class NaiveBayesClassifier(object):
         self.vectorizer = CountVectorizer(max_features=10000)
 
         self.prior = np.zeros(len(self.prior_classes))
-        self.predicted_list = []
-        self.predicted_prob = np.ones(len(self.prior_classes))
-
         self.likelihood = np.zeros((10000, len(self.prior_classes)))
 
     def getPrior(self, y_train):
-
         for i in range(len(self.prior_classes)):
-            self.prior[i] = sum(y_train == self.prior_classes[i]) / len(y_train)
+            self.prior[i] = (sum(y_train == self.prior_classes[i]) / len(y_train)).astype('float64')
         return self.prior
 
-    #Float Problem
     def getLikelihood(self, X_train, y_train):
 
         for i in range(len(self.prior_classes)):
-            self.likelihood[:,i] = np.sum((X_train[y_train == self.prior_classes[i], :]).toarray(), axis=0)/10000.0
+            self.likelihood[:, i] = (np.sum((X_train[y_train == self.prior_classes[i], :]).toarray(), axis=0)/10000.0).astype('float64')
         return self.likelihood
-
 
     def fit(self, X_train, y_train):
         self.vectorizer.fit(X_train)
@@ -75,58 +72,82 @@ class NaiveBayesClassifier(object):
         self.likelihood = self.getLikelihood(X_train, y_train)
         self.prior = self.getPrior(y_train)
 
-
-
     def predict(self, X_test):
+        predicted_list = []
+
         for i in range(len(X_test)):
+            predicted_prob = np.ones(len(self.prior_classes))
+
             for _, word in enumerate(X_test[i].split()):
                 if word in self.vectorizer.vocabulary_.keys():
                     idx = self.vectorizer.vocabulary_[word]
+
                     for j in range(len(self.prior_classes)):
-                        self.predicted_prob[j] = self.predicted_prob[j] * self.likelihood[idx, j]
+                        predicted_prob[j] = predicted_prob[j] * self.likelihood[idx, j]
 
                 else:
-
+                    # print('OOV')
                     for j in range(len(self.prior_classes)):
-                        self.predicted_prob[j] = self.predicted_prob[j] * 0.01
-            predicted = np.argmax(self.predicted_prob)
-            self.predicted_list.append(predicted)
-        return self.predicted_list
+                        predicted_prob[j] = predicted_prob[j] * 1
+
+            predicted = np.argmax([predicted_prob[0] * self.prior[0], predicted_prob[1] * self.prior[1]])
+            # print('self.predicted_prob', self.predicted_prob)
+            predicted_list.append(predicted)
+        return predicted_list
+
+    def evaluate(self, predicted_list, label):
+        correct = 0
+        for i in range(len(predicted_list)):
+            if predicted_list[i] == label[i]:
+                correct += 1
+        accuracy = correct / len(predicted_list)
+        return accuracy
+
+
+def main():
+    print("run naivebayes.py")
+
+    # train_text_path = "../dev_text.txt"
+    # train_label_path = "../dev_label.txt"
+    # test_text_path = "../heldout_text.txt"
+    # test_label_path = "../heldout_pred_nb.txt"
+
+    train_text_path = sys.argv[1]
+    train_label_path = sys.argv[2]
+    test_text_path = sys.argv[3]
+    test_label_path = sys.argv[4]
+
+    X_train, y_train = load_data(train_text_path, train_label_path)
+
+    X_test, _ = load_data(test_text_path)
+    print('the number of pos class :', sum(y_train))
+    print('the number of neg class :', len(y_train) - sum(y_train))
+
+    X_train, y_train, X_val, y_val = train_val_split(X_train, y_train, 0.7)
+
+    NB = NaiveBayesClassifier()
+    print('training is started')
+    NB.fit(X_train, y_train)
+    print('training is finished')
+
+    predicted_list = NB.predict(X_val)
+
+    f = open(test_label_path, 'w')
+    for i in range(len(predicted_list)):
+        f.write(str(predicted_list[i])+'\n')
+    f.close()
+
+    accuracy = NB.evaluate(predicted_list, y_val)
+    print('accuracy', accuracy)
+
+
+if __name__ == '__main__':
+    main()
 
 
 
-train_text_path = "../dev_text.txt"
-train_label_path = "../dev_label.txt"
-test_text_path = "../heldout_text.txt"
-
-X_train, y_train = load_data(train_text_path, train_label_path)
-X_test, _ = load_data(test_text_path)
-print('the number of pos class :', sum(y_train))
-print('the number of neg class :', len(y_train) - sum(y_train))
-
-NB = NaiveBayesClassifier()
-print('training is started')
-NB.fit(X_train, y_train)
-print('training is finished')
-
-predicted_list = NB.predict(X_test)
-print(predicted_list)
 
 
-# predicted_list = predict(train_lines)
-# print(sum(predicted_list))
-# print(len(predicted_list))
-# def get_sentence_list(data_path_list):
-#     sentence_list = []
-#     for i in range(len(data_path_list)):
-#         data = open(data_path_list[i], 'r')
-#         data_lines = data.readlines()
-#         sentence = data_lines[0]
-#         sentence_list.append(sentence)
-#         data.close()
-#     return sentence_list
-#
-#
 # def preprocessing(sentence, remove_stopwords = False):
 #     review_text = re.sub("[^a-zA-Z]", " ", sentence)
 #     words = review_text.lower().split()
