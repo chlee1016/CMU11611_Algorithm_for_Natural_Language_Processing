@@ -10,19 +10,20 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 
-def load_data(data_text, data_label):
+def load_data(data_text, data_label=None):
     f_train = open(data_text, encoding='UTF8')
     train_lines = f_train.readlines()
     f_train.close()
+    X_train = train_lines
 
-    f_train_label = open(data_label, encoding='UTF8')
-    train_labels = f_train_label.readlines()
-    f_train_label.close()
+    if data_label is not None:
+        f_train_label = open(data_label, encoding='UTF8')
+        train_labels = f_train_label.readlines()
+        f_train_label.close()
+        y_train = label2int(train_labels)
+    else:
+        y_train = None
 
-    vectorizer = CountVectorizer(max_features=10000)
-    vectorizer.fit(train_lines)
-    X_train = vectorizer.transform(train_lines)
-    y_train = label2int(train_labels)
 
     return X_train, y_train
 
@@ -37,65 +38,79 @@ def label2int(y_train):
     return y_train
 
 
-train_text_path = "../dev_text.txt"
-train_label_path = "../dev_label.txt"
 
-X_train, y_train = load_data(train_text_path, train_label_path)
-
-print('the number of pos class :', sum(y_train))
-print('the number of neg class :', len(y_train) - sum(y_train))
-
-
-class NaiveBayes(object):
+class NaiveBayesClassifier(object):
     def __init__(self):
         self.defaultProb = 0.0001
-        self.prior_classes = None
+        self.prior_classes = [0,1]
         self.likelihood = None
+        self.vectorizer = CountVectorizer(max_features=10000)
+
+        self.prior = np.zeros(len(self.prior_classes))
+        self.predicted_list = []
+        self.predicted_prob = np.ones(len(self.prior_classes))
+
+        self.likelihood = np.zeros((10000, len(self.prior_classes)))
 
     def getPrior(self, y_train):
-        self.prior = np.zeros(len(self.prior_classes))
+
         for i in range(len(self.prior_classes)):
             self.prior[i] = sum(y_train == self.prior_classes[i]) / len(y_train)
         return self.prior
 
     #Float Problem
     def getLikelihood(self, X_train, y_train):
-        self.likelihood = np.zeros((10000, len(self.prior_classes)))
+
         for i in range(len(self.prior_classes)):
             self.likelihood[:,i] = np.sum((X_train[y_train == self.prior_classes[i], :]).toarray(), axis=0)/10000.0
         return self.likelihood
 
-    def train(self, X_train, y_train):
+
+    def fit(self, X_train, y_train):
+        self.vectorizer.fit(X_train)
+        X_train = self.vectorizer.transform(X_train)
         y_train = np.asarray(y_train)
-        print('X_train.shape', X_train.shape)
-        print('y_train.shape', y_train.shape)
 
         self.prior_classes = np.unique(np.asarray(y_train))
         self.likelihood = self.getLikelihood(X_train, y_train)
         self.prior = self.getPrior(y_train)
-        self.prior_classes = np.unique(np.asarray(y_train))
+
 
 
     def predict(self, X_test):
-        self.predicted_list = []
         for i in range(len(X_test)):
-            self.predicted_prob = np.ones(len(self.prior_classes))
             for _, word in enumerate(X_test[i].split()):
-                if word in vectorizer.vocabulary_.keys():
-                    idx = vectorizer.vocabulary_[word]
+                if word in self.vectorizer.vocabulary_.keys():
+                    idx = self.vectorizer.vocabulary_[word]
                     for j in range(len(self.prior_classes)):
                         self.predicted_prob[j] = self.predicted_prob[j] * self.likelihood[idx, j]
+
                 else:
-                    print('OOV')
+
                     for j in range(len(self.prior_classes)):
                         self.predicted_prob[j] = self.predicted_prob[j] * 0.01
-            self.predicted = np.argmax(self.predicted_prob)
-            self.predicted_list.append(self.predicted)
+            predicted = np.argmax(self.predicted_prob)
+            self.predicted_list.append(predicted)
         return self.predicted_list
 
 
 
+train_text_path = "../dev_text.txt"
+train_label_path = "../dev_label.txt"
+test_text_path = "../heldout_text.txt"
 
+X_train, y_train = load_data(train_text_path, train_label_path)
+X_test, _ = load_data(test_text_path)
+print('the number of pos class :', sum(y_train))
+print('the number of neg class :', len(y_train) - sum(y_train))
+
+NB = NaiveBayesClassifier()
+print('training is started')
+NB.fit(X_train, y_train)
+print('training is finished')
+
+predicted_list = NB.predict(X_test)
+print(predicted_list)
 
 
 # predicted_list = predict(train_lines)
