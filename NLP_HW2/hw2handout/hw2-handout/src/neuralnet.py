@@ -1,9 +1,6 @@
 # $ sh hw4.sh ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
 import numpy as np
-import re
 import time
-from glob import glob
-from nltk.corpus import stopwords
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
 from tensorflow.python.keras.preprocessing.text import Tokenizer
 from tensorflow.keras.models import Sequential
@@ -109,11 +106,11 @@ def main():
     scores = model.evaluate(X_val, y_val, verbose=0)
     print("Accuracy: %.2f%%" % (scores[1] * 100))
 
-    predicted_list = model.predict(X_test)
+    predicted_list = model.predict_classes(X_test)
 
     f = open(test_label_path, 'w')
     for i in range(len(predicted_list)):
-        f.write(str(predicted_list[i]) + '\n')
+        f.write(str(np.squeeze(predicted_list[i])) + '\n')
     f.close()
 
 

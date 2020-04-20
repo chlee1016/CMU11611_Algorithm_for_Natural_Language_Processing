@@ -23,6 +23,22 @@ def load_data(data_text, data_label=None):
     return X_train, y_train
 
 
+def preprocessing(sentences, remove_stopwords = False):
+    clean_sentences = []
+    clean_sentence = None
+    for i in range(len(sentences)):
+        review_text = re.sub("[^a-zA-Z]", " ", sentences[i])
+        words = review_text.lower().split()
+        if remove_stopwords:
+            stops = set(stopwords.words("english"))
+            words = [w for w in words if not w in stops]
+            clean_sentence = ' '.join(words)
+        else:
+            clean_sentence = ' '.join(words)
+    clean_sentences.append(clean_sentence)
+    return clean_sentences
+
+
 def train_val_split(data, label, portion):
     # I = np.arange(round(len(data) * portion))
     X_train = data[:round(len(data) * portion)]
@@ -48,7 +64,7 @@ class NaiveBayesClassifier(object):
         self.defaultProb = 0.0001
         self.prior_classes = [0,1]
         self.likelihood = None
-        self.vectorizer = CountVectorizer(max_features=10000)
+        self.vectorizer = CountVectorizer(max_features=10000, stop_words='english')
 
         self.prior = np.zeros(len(self.prior_classes))
         self.likelihood = np.zeros((10000, len(self.prior_classes)))
@@ -119,10 +135,12 @@ def main():
     test_label_path = sys.argv[4]
 
     X_train, y_train = load_data(train_text_path, train_label_path)
-
     X_test, _ = load_data(test_text_path)
     print('the number of pos class :', sum(y_train))
     print('the number of neg class :', len(y_train) - sum(y_train))
+
+    # X_train = preprocessing(X_train)
+    # X_test = preprocessing(X_test)
 
     X_train, y_train, X_val, y_val = train_val_split(X_train, y_train, 0.7)
 
@@ -132,15 +150,14 @@ def main():
     print('training is finished')
 
     predicted_list = NB.predict(X_val)
-
-    f = open(test_label_path, 'w')
-    for i in range(len(predicted_list)):
-        f.write(str(predicted_list[i])+'\n')
-    f.close()
-
     accuracy = NB.evaluate(predicted_list, y_val)
     print('Accuracy: ', accuracy*100, '%')
 
+    test_predicted_list = NB.predict(X_test)
+    f = open(test_label_path, 'w')
+    for i in range(len(test_predicted_list)):
+        f.write(str(test_predicted_list[i]) + '\n')
+    f.close()
 
 if __name__ == '__main__':
     main()
@@ -149,16 +166,6 @@ if __name__ == '__main__':
 
 
 
-# def preprocessing(sentence, remove_stopwords = False):
-#     review_text = re.sub("[^a-zA-Z]", " ", sentence)
-#     words = review_text.lower().split()
-#     if remove_stopwords:
-#         stops = set(stopwords.words("english"))
-#         words = [w for w in words if not w in stops]
-#         clean_review = ' '.join(words)
-#     else:
-#         clean_review = ' '.join(words)
-#     return clean_review
 
 
 
