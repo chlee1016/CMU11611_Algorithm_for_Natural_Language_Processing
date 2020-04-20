@@ -1,4 +1,3 @@
-# $ python3 naivebayes.py dev_text.txt dev_label.txt heldout_text.txt heldout_pred_nb.txt
 import numpy as np
 import sys
 import re
@@ -23,6 +22,7 @@ def load_data(data_text, data_label=None):
 
     return X_train, y_train
 
+
 def train_val_split(data, label, portion):
     # I = np.arange(round(len(data) * portion))
     X_train = data[:round(len(data) * portion)]
@@ -30,6 +30,7 @@ def train_val_split(data, label, portion):
     X_val = data[round(len(data) * portion):]
     y_val = label[round(len(data) * portion):]
     return X_train, y_train, X_val, y_val
+
 
 def label2int(y_train):
     # replace neg to 0 and pos to 1
@@ -138,7 +139,7 @@ def main():
     f.close()
 
     accuracy = NB.evaluate(predicted_list, y_val)
-    print('accuracy', accuracy)
+    print('Accuracy: ', accuracy*100, '%')
 
 
 if __name__ == '__main__':
