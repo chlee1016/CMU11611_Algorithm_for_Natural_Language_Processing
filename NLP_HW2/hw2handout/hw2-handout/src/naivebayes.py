@@ -25,17 +25,16 @@ def load_data(data_text, data_label=None):
 
 def preprocessing(sentences, remove_stopwords = False):
     clean_sentences = []
-    clean_sentence = None
     for i in range(len(sentences)):
-        review_text = re.sub("[^a-zA-Z]", " ", sentences[i])
-        words = review_text.lower().split()
+        text = re.sub("[^a-zA-Z]", " ", sentences[i])
+        words = text.lower().split()
         if remove_stopwords:
             stops = set(stopwords.words("english"))
             words = [w for w in words if not w in stops]
             clean_sentence = ' '.join(words)
         else:
             clean_sentence = ' '.join(words)
-    clean_sentences.append(clean_sentence)
+        clean_sentences.append(clean_sentence)
     return clean_sentences
 
 
@@ -61,13 +60,13 @@ def label2int(y_train):
 
 class NaiveBayesClassifier(object):
     def __init__(self):
-        self.defaultProb = 0.0001
         self.prior_classes = [0,1]
         self.likelihood = None
-        self.vectorizer = CountVectorizer(max_features=10000, stop_words='english')
+        self.vocab_size = 10000
+        self.vectorizer = CountVectorizer(max_features=self.vocab_size, stop_words='english')
 
         self.prior = np.zeros(len(self.prior_classes))
-        self.likelihood = np.zeros((10000, len(self.prior_classes)))
+        self.likelihood = np.zeros((self.vocab_size, len(self.prior_classes)))
 
     def getPrior(self, y_train):
         for i in range(len(self.prior_classes)):
@@ -77,7 +76,7 @@ class NaiveBayesClassifier(object):
     def getLikelihood(self, X_train, y_train):
 
         for i in range(len(self.prior_classes)):
-            self.likelihood[:, i] = (np.sum((X_train[y_train == self.prior_classes[i], :]).toarray(), axis=0)/10000.0).astype('float64')
+            self.likelihood[:, i] = (np.sum((X_train[y_train == self.prior_classes[i], :]).toarray(), axis=0)/self.vocab_size).astype('float64')
         return self.likelihood
 
     def fit(self, X_train, y_train):
@@ -108,7 +107,6 @@ class NaiveBayesClassifier(object):
                         predicted_prob[j] = predicted_prob[j] * 1
 
             predicted = np.argmax([predicted_prob[0] * self.prior[0], predicted_prob[1] * self.prior[1]])
-            # print('self.predicted_prob', self.predicted_prob)
             predicted_list.append(predicted)
         return predicted_list
 
@@ -139,8 +137,15 @@ def main():
     print('the number of pos class :', sum(y_train))
     print('the number of neg class :', len(y_train) - sum(y_train))
 
-    # X_train = preprocessing(X_train)
-    # X_test = preprocessing(X_test)
+    '''
+    ################################
+    # preprocessing
+    print('X_train[0]', X_train[0])
+    X_train = preprocessing(X_train)
+    print('cleaned X_train[0]', X_train[0])
+    X_test = preprocessing(X_test)
+    ################################
+    '''
 
     X_train, y_train, X_val, y_val = train_val_split(X_train, y_train, 0.7)
 
@@ -158,6 +163,7 @@ def main():
     for i in range(len(test_predicted_list)):
         f.write(str(test_predicted_list[i]) + '\n')
     f.close()
+
 
 if __name__ == '__main__':
     main()
