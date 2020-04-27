@@ -57,6 +57,16 @@ def label2int(y_train):
     return y_train
 
 
+def int2label(predicted_list):
+    # replace 0 to neg and 1 to pos
+    predicted_list = list(map(int, predicted_list))
+    for i in range(len(predicted_list)):
+        if predicted_list[i] == 1:
+            predicted_list[i] = 'pos'
+        else:
+            predicted_list[i] = 'neg'
+    return predicted_list
+
 
 class NaiveBayesClassifier(object):
     def __init__(self):
@@ -159,6 +169,7 @@ def main():
     print('Accuracy: ', accuracy*100, '%')
 
     test_predicted_list = NB.predict(X_test)
+    test_predicted_list = int2label(test_predicted_list)
     f = open(test_label_path, 'w')
     for i in range(len(test_predicted_list)):
         f.write(str(test_predicted_list[i]) + '\n')

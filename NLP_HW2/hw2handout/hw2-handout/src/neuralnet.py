@@ -1,4 +1,4 @@
-# $ sh hw4.sh ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
+# $ sh hw2.sh ../dev_text.txt ../dev_label.txt ../heldout_text.txt ../heldout_pred_nb.txt
 import numpy as np
 import time
 from tensorflow.python.keras.preprocessing.sequence import pad_sequences
@@ -45,6 +45,17 @@ def label2int(y_train):
         else:
             y_train[i] = 0
     return y_train
+
+
+def int2label(predicted_list):
+    # replace 0 to neg and 1 to pos
+    predicted_list = list(map(int, predicted_list))
+    for i in range(len(predicted_list)):
+        if predicted_list[i] == 1:
+            predicted_list[i] = 'pos'
+        else:
+            predicted_list[i] = 'neg'
+    return predicted_list
 
 
 def cnn():
@@ -100,13 +111,14 @@ def main():
 
     model = cnn()
     start_time = time.time()
-    model.fit(X_train, y_train, validation_data=(X_val, y_val), shuffle=True, epochs=5, batch_size=8)
+    model.fit(X_train, y_train, validation_data=(X_val, y_val), shuffle=True, epochs=5, batch_size=4)
     print("training time for cnn:", time.time() - start_time)
 
     scores = model.evaluate(X_val, y_val, verbose=0)
     print("Accuracy: %.2f%%" % (scores[1] * 100))
 
     predicted_list = model.predict_classes(X_test)
+    predicted_list = int2label(predicted_list)
 
     f = open(test_label_path, 'w')
     for i in range(len(predicted_list)):
